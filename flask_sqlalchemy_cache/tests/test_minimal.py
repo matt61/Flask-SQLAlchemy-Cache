@@ -1,10 +1,12 @@
 # coding: UTF-8
 import unittest
+from unittest.mock import Mock, MagicMock
 
 from flask import Flask
-from flask.ext.sqlalchemy import SQLAlchemy, Model
-from flask.ext.cache import Cache
-from flask.ext.sqlalchemy_cache import CachingQuery, FromCache
+from flask_cache import Cache
+from flask_sqlalchemy import SQLAlchemy, Model
+from flask_sqlalchemy_cache import CachingQuery, FromCache
+
 
 Model.query_class = CachingQuery
 
@@ -68,6 +70,13 @@ class TestFromCache(unittest.TestCase):
     def test_no_results(self):
         # regression test (check #3) to handle zero results gracefully
         Country.query.filter_by(name="URSS").options(FromCache(cache)).all()
+
+    def test_empty_results(self):
+        # An empty result set should not trigger another set
+        mock_cache = Mock()
+        mock_cache.get = MagicMock(return_value=[])
+        Country.query.filter_by(name="URSS").options(FromCache(mock_cache)).all()
+        mock_cache.set.assert_not_called()
 
     def test_special_chars(self):
         unicode_name = u"Côte d'Ivoire"
